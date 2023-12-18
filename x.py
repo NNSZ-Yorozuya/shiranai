@@ -2,6 +2,8 @@ from PIL import Image
 from pathlib import Path
 import cv2
 import os
+import uuid
+import numpy as np
 
 def resize_image(image, target_size=(45, 70)):
     # 使用插值方法将图像缩放到目标大小
@@ -12,10 +14,6 @@ def resize_image(image, target_size=(45, 70)):
     # cv2.imshow('Resized Image', r)
     # cv2.waitKey(0)
 
-
-
-import cv2
-import numpy as np
 
 def select_color_range(image, target_color=(223, 223, 221), tolerance=5):
     # 将目标颜色转换为numpy数组
@@ -51,13 +49,13 @@ def segment_img(img, colored_img):
     eroded = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel=kernel)
     # cv2.imshow("eroded", eroded)
 
-    non_black_rows = np.any(eroded > 128, axis=1)
+    non_black_rows = np.sum(eroded > 128, axis=1)
     # 取最大连续的非全黑行
     l = 0
     r = -1
     ll = -1
     for p, i in enumerate(non_black_rows):
-        if i:
+        if i > img.shape[1] * 0.25:
             if ll == -1:
                 ll = p
         else:
@@ -73,9 +71,11 @@ def segment_img(img, colored_img):
             l = ll
         ll = -1
 
-    row_clamped = eroded[l:r]
+    # row_clamped = eroded[l:r]
     colored_img = colored_img[l:r]
-    # cv2.imshow("filter row:", row_clamped)
+    cv2.imshow("filter row:", colored_img)
+    cv2.waitKey()
+
     non_black_cols = np.any(eroded > 128, axis=0) # 取全黑纵列作为分割依据
 
     lrs = []
@@ -101,8 +101,17 @@ def segment_img(img, colored_img):
     return seg
     # cv2.waitKey()
 
+from PIL import Image
 
-TESTDIR = Path(r'F:\hakanai\Assets\testcase')
+ROOTDIR = Path(r'F:\hakanai\Assets')
+TESTDIR = ROOTDIR / 'testcase' / 'fromvideo'
+UNLABELDIR = ROOTDIR / 'unlabel'
+
+def output(segs: list[np.ndarray]):
+    UNLABELDIR.mkdir(exist_ok=True)
+    for s in segs:
+        # Image.fromarray(s).save(str((UNLABELDIR / (uuid.uuid4().hex + '.png')).absolute()))
+        cv2.imwrite(str((UNLABELDIR / (uuid.uuid4().hex + '.png')).absolute()), s)
 
 if __name__ == '__main__':
     for i in os.listdir(TESTDIR):
@@ -110,4 +119,6 @@ if __name__ == '__main__':
         # img = cv2.imread(str(imgpath.absolute()))
         img = cv2.imread(str(imgpath.absolute()), cv2.IMREAD_GRAYSCALE)
         cimg = cv2.imread(str(imgpath.absolute()))
-        segment_img(img, cimg)
+        segs = segment_img(img, cimg)
+        output(segs)
+
