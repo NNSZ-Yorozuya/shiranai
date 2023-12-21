@@ -6,9 +6,10 @@ import os
 import uuid
 import numpy as np
 import datetime
+import shutil
 
 # def resize_image(image, target_size=(45, 70)):
-def resize_image(image, target_size=(18, 28)):
+def resize_image(image, target_size=(27, 42)):
     # 使用插值方法将图像缩放到目标大小
     resized_image = cv2.resize(image, target_size, interpolation=cv2.INTER_AREA)
     return resized_image
@@ -25,15 +26,16 @@ OUTDIR = ROOTDIR / 'nearest'
 
 INPUTDIR = ROOTDIR / 'unlabel' / 'testset'
 
-def output(feature: np.ndarray, label: str):
+def output(feature: np.ndarray, label: str, filename: str = None):
     OUTDIR.mkdir(exist_ok=True,parents=True)
     OUTLABELDIR = OUTDIR / label
     OUTLABELDIR.mkdir(exist_ok=True,parents=True)
-    cv2.imwrite(str((OUTLABELDIR / (uuid.uuid4().hex + '.png')).absolute()), feature)
+    cv2.imwrite(str((OUTLABELDIR / (filename or (uuid.uuid4().hex + '.png'))).absolute()), feature)
 
 def tokenize_img(imgpath: str) -> Tuple[np.ndarray, np.ndarray]:
     cimg = cv2.imread(imgpath)
-    img = cv2.imread(imgpath, cv2.IMREAD_GRAYSCALE)
+    # img = cv2.imread(imgpath, cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread(imgpath)
     img = resize_image(img)
     # ret, img = cv2.threshold(img, 175, 255, cv2.THRESH_BINARY_INV)
     return img, cimg
@@ -47,6 +49,7 @@ if __name__ == '__main__':
             tokenized, original = tokenize_img(str(imgpath.absolute()))
             ds.setdefault(label, []).append((tokenized, original))
     print('train set loaded in', datetime.datetime.now() - now)
+    shutil.rmtree(OUTDIR)
     for sample in os.listdir(INPUTDIR):
         imgpath = INPUTDIR / sample
         img, cimg = tokenize_img(str(imgpath.absolute()))
@@ -69,4 +72,4 @@ if __name__ == '__main__':
         # cv2.imshow('source', cimg)
         # cv2.imshow('min_labeled', min_labeled)
         # cv2.waitKey()
-        output(cimg, min_label)
+        output(cimg, min_label, sample)
