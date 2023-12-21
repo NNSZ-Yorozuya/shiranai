@@ -72,9 +72,10 @@ def segment_img(img, colored_img):
         ll = -1
 
     # row_clamped = eroded[l:r]
+    eroded = eroded[l:r]
     colored_img = colored_img[l:r]
-    cv2.imshow("filter row:", colored_img)
-    cv2.waitKey()
+    # cv2.imshow("filter row:", colored_img)
+    # cv2.waitKey()
 
     non_black_cols = np.any(eroded > 128, axis=0) # 取全黑纵列作为分割依据
 
@@ -93,11 +94,23 @@ def segment_img(img, colored_img):
         lrs.append((ll, p))
         ll = -1
 
+    THR = 0.10
+    l_list = [] # 去掉尺寸差异大于中位数的10%的
+    for p, (l, r) in enumerate(lrs):
+        l_list.append(r - l)
+    l_list.sort()
+    print(l_list)
+    l_mid = l_list[len(l_list) // 2]
+
 
     for l, r in lrs:
+        if abs(r - l - l_mid) > THR * l_mid:
+            continue
         res = colored_img[:, l:r]
         seg.append(res)
+        # cv2.imshow(f"er{l}-{r}", eroded[:, l:r])
         # cv2.imshow(f"{l}-{r}", res)
+        # cv2.waitKey()
     return seg
     # cv2.waitKey()
 
