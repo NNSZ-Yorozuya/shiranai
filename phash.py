@@ -5,7 +5,8 @@ import os
 import uuid
 import numpy as np
 
-def resize_image(image, target_size=(45, 70)):
+# def resize_image(image, target_size=(45, 70)):
+def resize_image(image, target_size=(9, 14)):
     # 使用插值方法将图像缩放到目标大小
     resized_image = cv2.resize(image, target_size, interpolation=cv2.INTER_AREA)
     return resized_image
@@ -15,39 +16,17 @@ def resize_image(image, target_size=(45, 70)):
     # cv2.waitKey(0)
 
 
-def select_color_range(image, target_color=(223, 223, 221), tolerance=5):
-    # 将目标颜色转换为numpy数组
-    target_color = np.array(target_color, dtype=np.uint8)
-
-    # 设置上下浮动的范围
-    lower_bound = target_color - tolerance
-    upper_bound = target_color + tolerance
-
-    # 使用cv2.inRange选择颜色范围内的像素
-    mask = cv2.inRange(image, lower_bound, upper_bound)
-
-    # 将原图像和掩码进行与运算，得到选中的像素
-    selected_pixels = cv2.bitwise_and(image, image, mask=mask)
-
-    return mask, selected_pixels
-    # # 显示原图像、掩码和选中的像素
-    # cv2.imshow('Original Image', image)
-    # cv2.imshow('Mask', mask)
-    # cv2.imshow('Selected Pixels', selected_pixels)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
 def segment_img(img, colored_img):
     seg = []
 
     # cv2.imshow("Original", img)
     ret, thresh = cv2.threshold(img, 175, 200, cv2.THRESH_BINARY)
-    # cv2.imshow("thresh", thresh)
+    cv2.imshow("thresh", thresh)
 
     kernel = np.ones((4,4),dtype="uint8") # 查以某点为中心 6*6 区域内是不是全是这个颜色。这个超参根据需要调整
 
     eroded = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel=kernel)
-    # cv2.imshow("eroded", eroded)
+    cv2.imshow("eroded", eroded)
 
     non_black_rows = np.sum(eroded > 128, axis=1)
     # 取最大连续的非全黑行
@@ -104,11 +83,11 @@ def segment_img(img, colored_img):
 from PIL import Image
 
 ROOTDIR = Path(r'D:\SETU\shiranai\Assets')
-TESTDIR = ROOTDIR / 'testset'
-UNLABELDIR = ROOTDIR / 'unlabel' / 'testset'
+LABEL = ROOTDIR / 'label'
+UNLABELDIR = ROOTDIR / 'unlabel'
 
 def output(segs: list[np.ndarray]):
-    UNLABELDIR.mkdir(exist_ok=True, parents=True)
+    UNLABELDIR.mkdir(exist_ok=True)
     for s in segs:
         # Image.fromarray(s).save(str((UNLABELDIR / (uuid.uuid4().hex + '.png')).absolute()))
         cv2.imwrite(str((UNLABELDIR / (uuid.uuid4().hex + '.png')).absolute()), s)
