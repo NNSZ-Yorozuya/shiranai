@@ -53,12 +53,15 @@ def red_augment(img: np.ndarray, w=0.2) -> np.ndarray:
 
     return red_image
 
-def add_rotated_highlight_strip(image, angle, width_persentage=0.2, intensity=0.5):
+def add_rotated_highlight_strip(image, offset_x_persentage, angle=150, width_persentage=0.2, intensity=0.5):
     height, width = image.shape[:2]
     center = (width // 2, height // 2)
 
-    # 创建一个尺寸是原图两倍的透明图层
-    overlay = np.zeros((2*height, 2*width, 3), dtype=np.uint8)
+    # 创建一个尺寸是原图四倍的透明图层
+    overlay = np.zeros((4*height, 4*width, 3), dtype=np.uint8)
+
+    lcenter = (2*width, 2*height) # 大画布中心
+    lsize = (4*width, 4*height) # 大画布尺寸
 
     # 计算中心线位置
     center_line = image.shape[1] // 2
@@ -66,19 +69,29 @@ def add_rotated_highlight_strip(image, angle, width_persentage=0.2, intensity=0.
 
     # 在这个更大的图层上绘制高光条
     # 高光条位置是在这个大画布的中心
-    cv2.rectangle(overlay, (width - strip_width // 2, 0),
-                  (width + strip_width // 2, 2*height), (255, 255, 255), -1)
+    cv2.rectangle(overlay, (lcenter[0] - strip_width // 2, 0),
+                  (lcenter[0] + strip_width // 2, lsize[1]), (255, 255, 255), -1)
 
     # 创建旋转矩阵，中心点是新画布的中心
-    M = cv2.getRotationMatrix2D((width, height), angle, 1)
+    M = cv2.getRotationMatrix2D(lcenter, angle, 1)
 
     # 应用旋转矩阵，旋转高光条
-    rotated_overlay = cv2.warpAffine(overlay, M, (2 * width, 2 * height))
+    rotated_overlay = cv2.warpAffine(overlay, M, lsize)
 
-    # 裁剪回原图大小
-    rotated_overlay_cropped = rotated_overlay[height//2:height//2+height, width//2:width//2+width]
+    offset_x_persentage = int(offset_x_persentage * width)
+    print(offset_x_persentage)
+    # 根据水平平移量（offset_x）调整裁剪的起始点
+    start_x = width//2 - offset_x_persentage
+    start_y = lcenter[1]
+    end_x = start_x + width
+    end_y = start_y + height
 
-    
+    # 确保裁剪坐标不会超出旋转后图层的边界
+    # cv2.imshow('',rotated_overlay)
+    start_x = max(0, min(start_x, lsize[0] - width))
+    end_x = start_x + width
+    rotated_overlay_cropped = rotated_overlay[start_y:end_y, start_x:end_x]
+    # cv2.imshow(f"{start_x}",rotated_overlay_cropped)
     combined = cv2.addWeighted(image, 1, rotated_overlay_cropped, intensity, 0)
 
     # 返回添加了高光的图像
@@ -92,9 +105,10 @@ if __name__ == '__main__':
         for i in os.listdir(LABEL / label):
             imgpath = LABEL / label / i
             tokenized, original = tokenize_img(str(imgpath.absolute()))
-            cv2.imshow('original', original)
-            highlight = add_rotated_highlight_strip(original, 150, 0.2)
-            cv2.imshow('highlight', highlight)
+            # cv2.imshow('original', original)
+            for ofs in range(-160, 41, 10):
+                highlight = add_rotated_highlight_strip(original, ofs / 100)
+                # cv2.imshow('highlight-'+ str(ofs), highlight)
             # for i in range(16,25,2):
             #     redded = red_augment(original, i / 100)
             #     cv2.imshow('redded-'+ str(i), redded)
