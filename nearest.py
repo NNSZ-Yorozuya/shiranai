@@ -20,8 +20,9 @@ def resize_image(image, target_size=(27, 42)):
 
 ROOTDIR = Path(r'D:\SETU\shiranai\Assets')
 LABEL = ROOTDIR / 'label'
-OUTDIR = ROOTDIR / 'nearest'
+AUGUMENTATION_DIR = ROOTDIR / 'aug'
 
+OUTDIR = ROOTDIR / 'nearest'
 INPUTDIR = ROOTDIR / 'unlabel' / 'testset'
 
 def output(feature: np.ndarray, label: str, filename: str = None):
@@ -30,13 +31,12 @@ def output(feature: np.ndarray, label: str, filename: str = None):
     OUTLABELDIR.mkdir(exist_ok=True,parents=True)
     cv2.imwrite(str((OUTLABELDIR / (filename or (uuid.uuid4().hex + '.png'))).absolute()), feature)
 
-def tokenize_img(imgpath: str) -> Tuple[np.ndarray, np.ndarray]:
-    cimg = cv2.imread(imgpath)
+def tokenize_img(imgpath: str) -> np.ndarray:
     # img = cv2.imread(imgpath, cv2.IMREAD_GRAYSCALE)
     img = cv2.imread(imgpath)
     img = resize_image(img)
     # ret, img = cv2.threshold(img, 175, 255, cv2.THRESH_BINARY_INV)
-    return img, cimg
+    return img
 
 def blur_augment(img: np.ndarray, k=3) -> np.ndarray:
     # 高斯模糊
@@ -55,7 +55,6 @@ def red_augment(img: np.ndarray, w=0.2) -> np.ndarray:
 
 def add_rotated_highlight_strip(image, offset_x_persentage, angle=150, width_persentage=0.2, intensity=0.5):
     height, width = image.shape[:2]
-    center = (width // 2, height // 2)
 
     # 创建一个尺寸是原图四倍的透明图层
     overlay = np.zeros((4*height, 4*width, 3), dtype=np.uint8)
@@ -79,7 +78,7 @@ def add_rotated_highlight_strip(image, offset_x_persentage, angle=150, width_per
     rotated_overlay = cv2.warpAffine(overlay, M, lsize)
 
     offset_x_persentage = int(offset_x_persentage * width)
-    print(offset_x_persentage)
+    # print(offset_x_persentage)
     # 根据水平平移量（offset_x）调整裁剪的起始点
     start_x = width//2 - offset_x_persentage
     start_y = lcenter[1]
@@ -99,29 +98,54 @@ def add_rotated_highlight_strip(image, offset_x_persentage, angle=150, width_per
 
 
 if __name__ == '__main__':
+    AUGUMENTATION_DIR.mkdir(exist_ok=True, parents=True)
     ds = {} # 训练样本空间
     now = datetime.datetime.now()
     for label in os.listdir(LABEL):
-        for i in os.listdir(LABEL / label):
-            imgpath = LABEL / label / i
-            tokenized, original = tokenize_img(str(imgpath.absolute()))
+        (AUGUMENTATION_DIR / label).mkdir(exist_ok=True, parents=True)
+        for fn in os.listdir(LABEL / label):
+            imgpath = LABEL / label / fn
+            original = cv2.imread(str(imgpath.absolute()))
+            tokenized = tokenize_img(str(imgpath.absolute()))
+            augs = [original]
             # cv2.imshow('original', original)
-            for ofs in range(-160, 41, 10):
-                highlight = add_rotated_highlight_strip(original, ofs / 100)
-                # cv2.imshow('highlight-'+ str(ofs), highlight)
-            # for i in range(16,25,2):
-            #     redded = red_augment(original, i / 100)
-            #     cv2.imshow('redded-'+ str(i), redded)
-            # for i in range(3, 13, 2):
-            #     blurred = blur_augment(original, i)
-            #     cv2.imshow('blurred-'+ str(i), blurred)
-            cv2.waitKey()
-            ds.setdefault(label, []).append((tokenized, original))
+            ext = []
+            for source in augs:
+                for i in range(20,21,2):
+                    redded = red_augment(source, i / 100)
+                    # cv2.imshow('redded-'+ str(i), redded)
+                    ext.append(redded)
+            augs.extend(ext)
+            ext.clear()
+            for source in augs:
+                for ofs in range(-160, 41, 10):
+                    highlight = add_rotated_highlight_strip(source, ofs / 100)
+                    # cv2.imshow('highlight-'+ str(ofs), highlight)
+                    ext.append(highlight)
+            augs.extend(ext)
+            ext.clear()
+            for source in augs:
+                for i in range(3, 13, 2):
+                    blurred = blur_augment(source, i)
+                    # cv2.imshow('blurred-'+ str(i), blurred)
+                    ext.append(blurred)
+            augs.extend(ext)
+            tokenize_imgs = []
+            for p, source in enumerate(augs):
+                # cv2.imshow('source', source)
+                # cv2.waitKey()
+                tokenized = tokenize_img(str(imgpath.absolute()))
+                # cv2.imshow('tokenized', tokenized)
+                tokenize_imgs.append((tokenized, source))
+                cv2.imwrite(str((AUGUMENTATION_DIR / label / (fn + '-' + str(p) + '.png')).absolute()), source)
+            # cv2.waitKey()
+            ds.setdefault(label, []).extend(tokenize_imgs)
     print('train set loaded in', datetime.datetime.now() - now)
     shutil.rmtree(OUTDIR)
     for sample in os.listdir(INPUTDIR):
         imgpath = INPUTDIR / sample
-        img, cimg = tokenize_img(str(imgpath.absolute()))
+        cimg = cv2.imread(str(imgpath.absolute()))
+        img = tokenize_img(str(imgpath.absolute()))
         min_delta = img
         min_dist = 9e18
         min_label = ''
