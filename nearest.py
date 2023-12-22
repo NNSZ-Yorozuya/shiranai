@@ -53,25 +53,33 @@ def red_augment(img: np.ndarray, w=0.2) -> np.ndarray:
 
     return red_image
 
-def add_rotated_highlight_strip(image, strip_width, angle, intensity=0.5):
-    # 创建一个与原图大小相同的透明图层
-    overlay = np.zeros_like(image, dtype=np.uint8)
+def add_rotated_highlight_strip(image, angle, width_persentage=0.2, intensity=0.5):
+    height, width = image.shape[:2]
+    center = (width // 2, height // 2)
+
+    # 创建一个尺寸是原图两倍的透明图层
+    overlay = np.zeros((2*height, 2*width, 3), dtype=np.uint8)
 
     # 计算中心线位置
     center_line = image.shape[1] // 2
+    strip_width = int(image.shape[1] * width_persentage)
 
-    # 在透明图层上绘制矩形条
-    cv2.rectangle(overlay, (center_line - strip_width // 2, 0),
-                  (center_line + strip_width // 2, image.shape[0]), (255, 255, 255), -1)
+    # 在这个更大的图层上绘制高光条
+    # 高光条位置是在这个大画布的中心
+    cv2.rectangle(overlay, (width - strip_width // 2, 0),
+                  (width + strip_width // 2, 2*height), (255, 255, 255), -1)
 
-    # 创建一个旋转矩阵，用于旋转高光条
-    M = cv2.getRotationMatrix2D((center_line, image.shape[0] // 2), angle, 1)
+    # 创建旋转矩阵，中心点是新画布的中心
+    M = cv2.getRotationMatrix2D((width, height), angle, 1)
 
     # 应用旋转矩阵，旋转高光条
-    rotated_overlay = cv2.warpAffine(overlay, M, (image.shape[1], image.shape[0]))
+    rotated_overlay = cv2.warpAffine(overlay, M, (2 * width, 2 * height))
 
-    # 将旋转后的图层合并到原始图像上，使用叠加的方式
-    combined = cv2.addWeighted(image, 1, rotated_overlay, intensity, 0)
+    # 裁剪回原图大小
+    rotated_overlay_cropped = rotated_overlay[height//2:height//2+height, width//2:width//2+width]
+
+    
+    combined = cv2.addWeighted(image, 1, rotated_overlay_cropped, intensity, 0)
 
     # 返回添加了高光的图像
     return combined
@@ -85,7 +93,8 @@ if __name__ == '__main__':
             imgpath = LABEL / label / i
             tokenized, original = tokenize_img(str(imgpath.absolute()))
             cv2.imshow('original', original)
-            add_rotated_highlight_strip(original, 10, 45)
+            highlight = add_rotated_highlight_strip(original, 150, 0.2)
+            cv2.imshow('highlight', highlight)
             # for i in range(16,25,2):
             #     redded = red_augment(original, i / 100)
             #     cv2.imshow('redded-'+ str(i), redded)
