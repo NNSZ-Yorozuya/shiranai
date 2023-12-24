@@ -1,5 +1,7 @@
 from typing import Tuple
 from pathlib import Path
+import os
+import cv2
 
 import numpy as np
 import torch
@@ -8,7 +10,7 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
-from utils import load_augumented_data_as_list
+from utils import load_augumented_data_as_list, tokenize_img
 
 classes_int2str = {
     0: '1m',
@@ -88,4 +90,19 @@ def get_train_loader(batch_size=16, path = None, cache_path = None):
         ])
         dataset = CustomDataset(data_list)
         torch.save(dataset, cache_path)
+    return DataLoader(dataset, batch_size, shuffle=True, num_workers=1)
+
+def get_test_loader(batch_size=16, path=None):
+    path = path or Path('Assets/unlabel/testset')
+    ds = []
+    for label in os.listdir(path):
+        for fn in os.listdir(path / label):
+            tokenized = tokenize_img(str((path / label / fn).absolute()))
+            ds.append((label, tokenized))
+    
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        # ... 这里可以加入其他的变换，比如数据标准化等
+    ])
+    dataset = CustomDataset(ds)
     return DataLoader(dataset, batch_size, shuffle=True, num_workers=1)

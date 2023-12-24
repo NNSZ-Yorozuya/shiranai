@@ -8,6 +8,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 
+
 # 设置设备
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -57,15 +58,56 @@ def train_model(
         # Save model checkpoint
         torch.save(model.state_dict(), ckpt_path / f'{filename_prefix}-{epoch+1}.ckpt')
 
+def test_model(
+    model: nn.Module,
+    data_loader: DataLoader,
+    criterion: nn.modules.loss._WeightedLoss,
+):
+    # 设置模型为评估模式
+    model.eval()
+    
+    # 初始化损失和正确的预测数量
+    total_loss = 0
+    correct_predictions = 0
+    
+    # 不计算梯度
+    with torch.no_grad():
+        for images, labels in data_loader:
+            # 将数据移动到配置的设备上
+            images = images.to(device)
+            labels = labels.to(device)
+            
+            # 前向传播，计算预测结果
+            outputs = model(images)
+            
+            # 计算损失
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
+            
+            # 计算准确率
+            _, predicted = torch.max(outputs, 1)
+            correct_predictions += (predicted == labels).sum().item()
+    
+    # 计算平均损失和准确率
+    avg_loss = total_loss / len(data_loader)
+    accuracy = correct_predictions / len(data_loader.dataset)
+    
+    print(f'Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}')
+
 # 训练模型
 # train_model(model, data_loader, criterion, optimizer, num_epochs=5)
 
 if __name__ == "__main__":
-    from data import get_train_loader
+    from data import get_train_loader, get_test_loader
     from nets import SimpleClassifier
-    model = SimpleClassifier().to(device)
-    data_loader = get_train_loader()
+    model = SimpleClassifier()
+    sd = torch.load(r'F:\shiranai\trained\simple-0.01-0.9-5.ckpt')
+    model.load_state_dict(sd)
+    model = model.to(device)
+    # data_loader = get_train_loader()
+    data_loader = get_test_loader()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    train_model(model, data_loader, criterion, optimizer, num_epochs=5,
-        ckpt_path=Path(r'F:\shiranai\trained'), filename_prefix='simple-0.01-0.9')
+    # train_model(model, data_loader, criterion, optimizer, num_epochs=5,
+    #     ckpt_path=Path(r'F:\shiranai\trained'), filename_prefix='simple-0.01-0.9')
+    test_model(model, data_loader, criterion)
