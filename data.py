@@ -62,7 +62,7 @@ for k, v in classes_int2str.items():
 class CustomDataset(Dataset):
     def __init__(self, data_list: list[Tuple[str, np.ndarray]], transform=None):
         for p, i in enumerate(data_list):
-            data_list[p] = (classes_str2int[i[0]], torch.from_numpy(i[1]).float())
+            data_list[p] = (classes_str2int[i[0]], torch.from_numpy(i[1]).permute(2, 0, 1).float()) # 第一维batch_size，第二维通道，第三第四维才是图片尺寸
         self.data_list = data_list
         self.transform = transform
 
@@ -85,10 +85,10 @@ def get_train_loader(batch_size=16, path = None, cache_path = None):
     else:
         data_list = load_augumented_data_as_list(path)
         transform = transforms.Compose([
-            transforms.ToTensor(),
-            # ... 这里可以加入其他的变换，比如数据标准化等
+            # transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
-        dataset = CustomDataset(data_list)
+        dataset = CustomDataset(data_list, transform)
         torch.save(dataset, cache_path)
     return DataLoader(dataset, batch_size, shuffle=True, num_workers=1)
 
@@ -101,8 +101,8 @@ def get_test_loader(batch_size=16, path=None):
             ds.append((label, tokenized))
     
     transform = transforms.Compose([
-        transforms.ToTensor(),
-        # ... 这里可以加入其他的变换，比如数据标准化等
+        # transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
-    dataset = CustomDataset(ds)
+    dataset = CustomDataset(ds, transform)
     return DataLoader(dataset, batch_size, shuffle=True, num_workers=1)

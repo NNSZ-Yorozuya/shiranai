@@ -5,19 +5,22 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.init as init
 from torch.utils.data import DataLoader
-
-
 
 # 设置设备
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# # 实例化模型，并移动到设备上
-# model = SimpleClassifier().to(device)
-
-# 定义损失函数和优化器
-# criterion = nn.CrossEntropyLoss()
-# optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+# 使用预定义的初始化方法初始化权重
+def init_weights(m):
+    if type(m) == nn.Linear:
+        init.kaiming_uniform_(m.weight, mode='fan_in', nonlinearity='relu')
+        if m.bias is not None:
+            init.constant_(m.bias, 0)
+    elif type(m) == nn.Conv2d:
+        init.kaiming_uniform_(m.weight, mode='fan_in', nonlinearity='relu')
+        if m.bias is not None:
+            init.constant_(m.bias, 0)
 
 # 假设你已经有了一个数据加载器data_loader
 # 下面是训练模型的框架
@@ -32,9 +35,11 @@ def train_model(
     ):
     ckpt_path = ckpt_path or Path()
     ckpt_path.mkdir(exist_ok=True, parents=True)
+    model.apply(init_weights)
     for epoch in range(num_epochs):
         model.train()  # Set the model to training mode
         running_loss = 0.0
+        correct_predictions = 0
 
         for images, labels in data_loader:
             # Move tensors to the configured device
@@ -52,9 +57,13 @@ def train_model(
 
             # Print statistics
             running_loss += loss.item()
+
+            _, predicted = torch.max(outputs, 1)
+            correct_predictions += (predicted == labels).sum().item()
         
         # Print epoch loss
-        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(data_loader):.4f}')
+        accuracy = correct_predictions / len(data_loader.dataset)
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(data_loader):.4f}, Accuracy: {accuracy:.4f}')
         # Save model checkpoint
         torch.save(model.state_dict(), ckpt_path / f'{filename_prefix}-{epoch+1}.ckpt')
 
@@ -97,17 +106,30 @@ def test_model(
 # 训练模型
 # train_model(model, data_loader, criterion, optimizer, num_epochs=5)
 
-if __name__ == "__main__":
-    from data import get_train_loader, get_test_loader
-    from nets import SimpleClassifier
-    model = SimpleClassifier()
-    sd = torch.load(r'F:\shiranai\trained\simple-0.01-0.9-5.ckpt')
+def train():
+    from data import get_train_loader
+    from nets import SimpleClassifier, CNN2
+    model = CNN2()
+    model = model.to(device)
+    data_loader = get_train_loader()
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    train_model(model, data_loader, criterion, optimizer, num_epochs=20,
+        ckpt_path=Path(r'F:\shiranai\trained'), filename_prefix='cnn2-0.001-0.9')
+
+def test():
+    from data import get_test_loader
+    from nets import SimpleClassifier, CNN2
+    # model = SimpleClassifier()
+    model = CNN2()
+    # sd = torch.load(r'F:\shiranai\trained\simple-0.01-0.9-2.ckpt')
+    sd = torch.load(r'F:\shiranai\trained\cnn2-0.01-0.9-5.ckpt')
     model.load_state_dict(sd)
     model = model.to(device)
-    # data_loader = get_train_loader()
     data_loader = get_test_loader()
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    # train_model(model, data_loader, criterion, optimizer, num_epochs=5,
-    #     ckpt_path=Path(r'F:\shiranai\trained'), filename_prefix='simple-0.01-0.9')
     test_model(model, data_loader, criterion)
+
+if __name__ == "__main__":
+    train()
+    # test()
