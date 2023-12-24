@@ -5,16 +5,6 @@ import os
 import uuid
 import numpy as np
 
-def resize_image(image, target_size=(45, 70)):
-    # 使用插值方法将图像缩放到目标大小
-    resized_image = cv2.resize(image, target_size, interpolation=cv2.INTER_AREA)
-    return resized_image
-    # r = resize_image(img)
-    # cv2.imshow('Original Image', img)
-    # cv2.imshow('Resized Image', r)
-    # cv2.waitKey(0)
-
-
 def select_color_range(image, target_color=(223, 223, 221), tolerance=5):
     # 将目标颜色转换为numpy数组
     target_color = np.array(target_color, dtype=np.uint8)
