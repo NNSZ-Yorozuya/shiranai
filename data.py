@@ -75,7 +75,7 @@ class CustomDataset(Dataset):
         return image, label
 
 
-def get_train_loader(path = None, cache_path = None):
+def get_train_loader(batch_size=16, path = None, cache_path = None):
     path = path or Path('Assets/label')
     cache_path = cache_path or Path('Assets/aug_dataset.cache')
     if cache_path.exists():
@@ -88,4 +88,4 @@ def get_train_loader(path = None, cache_path = None):
         ])
         dataset = CustomDataset(data_list)
         torch.save(dataset, cache_path)
-    return DataLoader(dataset, batch_size=4, shuffle=True, num_workers=1)
+    return DataLoader(dataset, batch_size, shuffle=True, num_workers=1)
