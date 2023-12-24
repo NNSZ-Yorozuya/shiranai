@@ -31,11 +31,16 @@ def train_model(
     optimizer: optim.Optimizer,
     num_epochs: int,
     ckpt_path: Path = None,
-    filename_prefix = 'model'
+    filename_prefix = 'model',
+    resume: str = None
     ):
     ckpt_path = ckpt_path or Path()
     ckpt_path.mkdir(exist_ok=True, parents=True)
-    model.apply(init_weights)
+    if resume:
+        sd = torch.load(resume)
+        model.load_state_dict(sd)
+    else:
+        model.apply(init_weights)
     for epoch in range(num_epochs):
         model.train()  # Set the model to training mode
         running_loss = 0.0
