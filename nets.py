@@ -1,7 +1,7 @@
 from torch import nn
 import torch.nn.functional as F
 
-# 输入张量一定是45 * 70 * 3的，需要改可以去utils.py里面改resize_image函数
+# 输入张量一定是45 * 70 * 3的，需要改可以去utils.py里面改resize_image函数，改后这里的网络要重新算
 
 # 定义模型
 class SimpleClassifier(nn.Module):

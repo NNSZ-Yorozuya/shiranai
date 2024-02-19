@@ -86,7 +86,7 @@ def get_train_loader(batch_size=16, path = None, cache_path = None):
         data_list = load_augumented_data_as_list(path)
         transform = transforms.Compose([
             # transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
         dataset = CustomDataset(data_list, transform)
         torch.save(dataset, cache_path)
@@ -102,7 +102,7 @@ def get_test_loader(batch_size=16, path=None):
     
     transform = transforms.Compose([
         # transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
     dataset = CustomDataset(ds, transform)
     return DataLoader(dataset, batch_size, shuffle=True, num_workers=1)

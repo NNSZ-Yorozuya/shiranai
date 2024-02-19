@@ -1,6 +1,7 @@
 from typing import Tuple
 from pathlib import Path
 
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,11 +14,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # 使用预定义的初始化方法初始化权重
 def init_weights(m):
-    if type(m) == nn.Linear:
-        init.kaiming_uniform_(m.weight, mode='fan_in', nonlinearity='relu')
-        if m.bias is not None:
-            init.constant_(m.bias, 0)
-    elif type(m) == nn.Conv2d:
+    if type(m) in (nn.Linear, nn.Conv2d):
         init.kaiming_uniform_(m.weight, mode='fan_in', nonlinearity='relu')
         if m.bias is not None:
             init.constant_(m.bias, 0)
@@ -68,7 +65,7 @@ def train_model(
         
         # Print epoch loss
         accuracy = correct_predictions / len(data_loader.dataset)
-        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(data_loader):.4f}, Accuracy: {accuracy:.4f}')
+        print(f'Epoch [{epoch+1}/{num_epochs}], Train Loss: {running_loss/len(data_loader):.4f}, Accuracy: {accuracy:.4f}')
         # Save model checkpoint
         torch.save(model.state_dict(), ckpt_path / f'{filename_prefix}-{epoch+1}.ckpt')
 
@@ -106,7 +103,8 @@ def test_model(
     avg_loss = total_loss / len(data_loader)
     accuracy = correct_predictions / len(data_loader.dataset)
     
-    print(f'Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}')
+    print(f'Test Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}')
+    return avg_loss, accuracy
 
 # 训练模型
 # train_model(model, data_loader, criterion, optimizer, num_epochs=5)
@@ -114,13 +112,24 @@ def test_model(
 def train():
     from data import get_train_loader
     from nets import SimpleClassifier, CNN2
+    # 超参数
+    learn_rate = 0.001
+    momentum = 0.9
+    epoch = 30
+    weight_decay = 0.1
+    #
     model = CNN2()
     model = model.to(device)
     data_loader = get_train_loader()
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    train_model(model, data_loader, criterion, optimizer, num_epochs=20,
-        ckpt_path=Path(r'F:\shiranai\trained'), filename_prefix='cnn2-0.001-0.9')
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=learn_rate,
+        # momentum=momentum,
+        weight_decay=weight_decay
+    )
+    train_model(model, data_loader, criterion, optimizer, num_epochs=epoch,
+        ckpt_path=Path(r'trained'), filename_prefix=f'cnn2-adam-{learn_rate}-{momentum}-{epoch}-{weight_decay}')
 
 def test():
     from data import get_test_loader
@@ -128,13 +137,22 @@ def test():
     # model = SimpleClassifier()
     model = CNN2()
     # sd = torch.load(r'F:\shiranai\trained\simple-0.01-0.9-2.ckpt')
-    sd = torch.load(r'F:\shiranai\trained\cnn2-0.01-0.9-5.ckpt')
-    model.load_state_dict(sd)
-    model = model.to(device)
-    data_loader = get_test_loader()
-    criterion = nn.CrossEntropyLoss()
-    test_model(model, data_loader, criterion)
+    for mdlpath in os.listdir('trained'):
+        if mdlpath.endswith('.ckpt'):
+            sd = torch.load(os.path.join('trained', mdlpath))
+            model.load_state_dict(sd)
+            model = model.to(device)
+            data_loader = get_test_loader()
+            criterion = nn.CrossEntropyLoss()
+            print(mdlpath)
+            test_model(model, data_loader, criterion)
+    # sd = torch.load(r'F:\shiranai\trained\cnn2-0.01-0.9-5.ckpt')
+    # model.load_state_dict(sd)
+    # model = model.to(device)
+    # data_loader = get_test_loader()
+    # criterion = nn.CrossEntropyLoss()
+    # test_model(model, data_loader, criterion)
 
 if __name__ == "__main__":
-    train()
-    # test()
+    # train()
+    test()
