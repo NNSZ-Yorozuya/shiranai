@@ -104,8 +104,6 @@ def segment_img(img, colored_img):
     return seg
     # cv2.waitKey()
 
-from PIL import Image
-
 ROOTDIR = Path(r'D:\SETU\shiranai\Assets')
 TESTDIR = ROOTDIR / 'testset'
 UNLABELDIR = ROOTDIR / 'unlabel' / 'testset'

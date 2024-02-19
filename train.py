@@ -98,6 +98,10 @@ def test_model(
             # 计算准确率
             _, predicted = torch.max(outputs, 1)
             correct_predictions += (predicted == labels).sum().item()
+            for idx, val in enumerate(predicted):
+                if val != labels[idx]:
+                    print(f'predicted: {val}, labels: {labels[idx]}')
+            # print('predicted:', predicted, 'labels:', labels)
     
     # 计算平均损失和准确率
     avg_loss = total_loss / len(data_loader)
