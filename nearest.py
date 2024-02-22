@@ -11,8 +11,8 @@ ROOTDIR = Path(r'D:\SETU\shiranai\Assets')
 LABEL = ROOTDIR / 'label'
 AUGUMENTATION_DIR = ROOTDIR / 'aug'
 
-OUTDIR = ROOTDIR / 'nearest'
-INPUTDIR = ROOTDIR / 'unlabel' / 'testset'
+OUTDIR = ROOTDIR / 'nearest_output'
+INPUTDIR = ROOTDIR / 'segmented'
 
 def output(feature: np.ndarray, label: str, filename: str = None):
     OUTDIR.mkdir(exist_ok=True,parents=True)

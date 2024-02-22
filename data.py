@@ -93,7 +93,7 @@ def get_train_loader(batch_size=16, path = None, cache_path = None):
     return DataLoader(dataset, batch_size, shuffle=True, num_workers=1)
 
 def get_test_loader(batch_size=16, path=None):
-    path = path or Path('Assets/unlabel/testset')
+    path = path or Path('Assets/testset')
     ds = []
     for label in os.listdir(path):
         for fn in os.listdir(path / label):
