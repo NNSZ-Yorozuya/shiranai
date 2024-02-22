@@ -2,6 +2,10 @@
 import torch
 import os
 import torch.nn as nn
+import cv2
+from pathlib import Path
+
+from utils import tokenize_img
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -10,14 +14,13 @@ def eval_model(
     image: torch.Tensor,
 ):
     model.eval()
-    images = image.unsqueeze(0)
     with torch.no_grad():
-        images = images.to(device)
-        outputs = model(images)
+        image = image.to(device)
+        outputs = model(image)
         _, predicted = torch.max(outputs, 1)
     return predicted[0]
 
-def eval():
+def eval(fn: str):
     from data import get_test_loader
     from nets import SimpleClassifier, CNN2
     model = CNN2()
@@ -25,8 +28,11 @@ def eval():
     model.load_state_dict(sd)
     model = model.to(device)
     
-    eval_model(model, )
+    pd = eval_model(model, torch.from_numpy(tokenize_img(fn)).permute(2, 0, 1).float().unsqueeze(0))
+    print(fn, pd)
 
-
+SOURCE = Path('Assets/segmented/screenshot')
 if __name__ == "__main__":
-    eval()
+    for fn in os.listdir(SOURCE.absolute()):
+        if fn.endswith('.jpg') or fn.endswith('.png'):
+            eval(str((SOURCE / fn).absolute()))
