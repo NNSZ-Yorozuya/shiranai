@@ -14,9 +14,9 @@ def resize_image(image, target_size=(45, 70)) -> np.ndarray:
     # cv2.imshow('Resized Image', r)
     # cv2.waitKey(0)
 
-def tokenize_img(imgpath: str) -> np.ndarray:
+def tokenize_img(imgpath: str | np.ndarray) -> np.ndarray:
     # img = cv2.imread(imgpath, cv2.IMREAD_GRAYSCALE)
-    img = cv2.imread(imgpath)
+    img = cv2.imread(imgpath) if isinstance(imgpath, str) else imgpath
     img = resize_image(img)
     # ret, img = cv2.threshold(img, 175, 255, cv2.THRESH_BINARY_INV)
     return img
