@@ -1,0 +1,15 @@
+[project]
+name = "mahjong-detector-2"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "", email = ""},
+]
+dependencies = ["ultralytics<=8.3.40", "torch>=2.6.0", "torchvision>=0.21.0", "ipykernel>=6.29.5", "onnx>=1.17.0", "onnxslim>=0.1.50", "roboflow>=1.1.53", "onnxruntime>=1.21.0", "numpy<1.24", "tensorflowjs>=4.22.0"]
+requires-python = "==3.11.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+
+[tool.pdm]
+distribution = false

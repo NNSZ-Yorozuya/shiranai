@@ -1,0 +1,7 @@
+.pdm-*
+pdm.lock
+yolo11*.pt
+.venv
+__pycache__
+/runs/
+labels.cache
